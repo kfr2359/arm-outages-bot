@@ -69,8 +69,7 @@ async def parse_outages(raw: str) -> list[tuple[str, str]]:
 
 async def notify_if_outage_at_svachyan(outage: str, outage_link: str, bot: Bot) -> None:
     outage = outage.lower()
-    if 'спандарян' in outage or ('малатия' in outage and 'а1' in outage):
-        # if 'свачян' in outage.lower():
+    if 'свачян' in outage or ('малатия' in outage and 'а1' in outage):
         logging.info(f'outage detected {outage_link}, notifying recipients')
         for recipient_chat_id in notification_recipients_chat_ids:
             logging.info(f'notifying recipient {recipient_chat_id}')
