@@ -15,6 +15,7 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 OUTAGES_SRC_URL = 'https://t.me/s/ArmeniaBlackouts'
+OUTAGE_CHECK_INTERVAL = 60 * 10  # seconds
 CONF_PATH = 'config.json'
 
 dp = Dispatcher()
@@ -97,11 +98,10 @@ async def check_and_notify_about_outages(bot: Bot) -> None:
 
 
 async def outages_check_routine(bot: Bot) -> None:
-    await asyncio.sleep(30)
     await check_and_notify_about_outages(bot)
 
     while True:
-        await asyncio.sleep(10)
+        await asyncio.sleep(OUTAGE_CHECK_INTERVAL)
         await check_and_notify_about_outages(bot)
 
 

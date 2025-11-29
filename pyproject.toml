@@ -11,9 +11,5 @@ dependencies = [
     "python-dotenv",
 ]
 
-[tool.setuptools_scm]
-version_scheme = "post-release"
-local_scheme = "dirty-tag"
-
 [tool.setuptools.packages]
 find = { }
