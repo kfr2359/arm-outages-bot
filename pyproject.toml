@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "arm-outages-bot"
+dynamic = ["version"]
+dependencies = [
+    "aiogram",
+    "beautifulsoup4",
+    "python-dotenv",
+]
+
+[tool.setuptools_scm]
+version_scheme = "post-release"
+local_scheme = "dirty-tag"
+
+[tool.setuptools.packages]
+find = { }
