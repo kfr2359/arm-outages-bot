@@ -7,4 +7,4 @@ services:
     volumes:
       - type: bind
         source: ./config.json
-        target: /config.json
+        target: /app/config.json
