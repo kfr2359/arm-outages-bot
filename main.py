@@ -102,7 +102,10 @@ async def outages_check_routine(bot: Bot) -> None:
 
     while True:
         await asyncio.sleep(OUTAGE_CHECK_INTERVAL)
-        await check_and_notify_about_outages(bot)
+        try:
+            await check_and_notify_about_outages(bot)
+        except Exception as e:
+            logging.exception(e)
 
 
 @dp.message(CommandStart())
