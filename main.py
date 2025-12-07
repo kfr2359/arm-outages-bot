@@ -86,9 +86,11 @@ async def check_and_notify_about_outages(bot: Bot) -> None:
         parse_start_idx = 0
         for i, outage_tuple in enumerate(outages):
             if outage_tuple[1] == latest_parsed_msg:
-                parse_start_idx = i
+                parse_start_idx = i + 1
                 break
         outages = outages[parse_start_idx:]
+        if len(outages) == 0:
+            return
 
     latest_parsed_msg = outages[-1][1]
     for outage, outage_link in outages:
