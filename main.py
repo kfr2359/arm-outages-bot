@@ -1,4 +1,5 @@
 import asyncio
+import gc
 import json
 import logging
 import sys
@@ -108,6 +109,7 @@ async def outages_check_routine(bot: Bot) -> None:
             await check_and_notify_about_outages(bot)
         except Exception as e:
             logging.exception(e)
+        gc.collect()
 
 
 @dp.message(CommandStart())
