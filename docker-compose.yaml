@@ -1,7 +1,7 @@
 services:
   bot:
     build: .
-    restart: unless-stopped
+    restart: always
     environment:
       - BOT_TOKEN=""
     volumes:
