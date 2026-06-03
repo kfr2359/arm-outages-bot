@@ -63,19 +63,30 @@ async def parse_outages(raw: str) -> list[tuple[str, str]]:
     soup = BeautifulSoup(raw, 'html.parser')
     for full_msg_tag in soup.find_all('div', attrs={'class': 'tgme_widget_message_wrap js-widget_message_wrap'}):
         result.append((
-            full_msg_tag.find('div', attrs={'class': 'tgme_widget_message_text js-message_text'}).text,
+            full_msg_tag.find('div', attrs={'class': 'tgme_widget_message_text js-message_text'}).get_text(
+                separator='\n'),
             full_msg_tag.find('a', attrs={'class': 'tgme_widget_message_date'}).attrs['href'],
         ))
     return result
 
 
+def extract_outage_line(outage: str) -> str | None:
+    for line in outage.splitlines():
+        line_lower = line.lower()
+        if 'свачян' in line_lower or ('малатия' in line_lower and 'а1' in line_lower):
+            return line
+    return None
+
+
 async def notify_if_outage_at_svachyan(outage: str, outage_link: str, bot: Bot) -> None:
-    outage = outage.lower()
-    if 'свачян' in outage or ('малатия' in outage and 'а1' in outage):
+    outage_line = extract_outage_line(outage)
+    if outage_line:
         logging.info(f'outage detected {outage_link}, notifying recipients')
         for recipient_chat_id in notification_recipients_chat_ids:
             logging.info(f'notifying recipient {recipient_chat_id}')
-            await bot.send_message(recipient_chat_id, outage_link)
+            await bot.send_message(recipient_chat_id, f'<blockquote>{outage_line}</blockquote>\n'
+                                                      f'{outage_link}',
+                                   parse_mode=ParseMode.HTML)
 
 
 async def check_and_notify_about_outages(bot: Bot) -> None:
