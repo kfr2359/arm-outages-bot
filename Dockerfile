@@ -1,6 +1,6 @@
-FROM python:3.13-alpine AS builder
+FROM python:3.13-slim AS builder
 
-RUN apk add gcc git
+RUN apt update && apt upgrade -y
 
 WORKDIR /app/
 
@@ -11,7 +11,7 @@ ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 RUN pip install uv
 RUN uv sync --locked --no-dev
 
-FROM python:3.13-alpine AS runtime
+FROM python:3.13-slim AS runtime
 
 COPY --from=builder /app /app
 
