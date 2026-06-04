@@ -8,7 +8,7 @@ dynamic = ["version"]
 dependencies = [
     "aiogram",
     "aiofiles",
-    "beautifulsoup4",
+    "lxml",
     "python-dotenv",
 ]
 

@@ -9,11 +9,11 @@ import aiofiles
 import aiohttp
 from aiogram import Bot, Dispatcher, html
 from aiogram.client.default import DefaultBotProperties
-from aiogram.enums import ParseMode
-from aiogram.filters import CommandStart
-from aiogram.types import Message
-from bs4 import BeautifulSoup
+from aiogram.enums.parse_mode import ParseMode
+from aiogram.filters.command import CommandStart
+from aiogram.types.message import Message
 from dotenv import load_dotenv
+from lxml import html as lxml_html
 
 OUTAGES_SRC_URL = 'https://t.me/s/ArmeniaBlackouts'
 OUTAGE_CHECK_INTERVAL = 60 * 10  # seconds
@@ -60,20 +60,45 @@ async def get_latest_outages() -> str:
 async def parse_outages(raw: str) -> list[tuple[str, str]]:
     result: list[tuple[str, str]] = []
 
-    soup = BeautifulSoup(raw, 'html.parser')
-    for full_msg_tag in soup.find_all('div', attrs={'class': 'tgme_widget_message_wrap js-widget_message_wrap'}):
-        result.append((
-            full_msg_tag.find('div', attrs={'class': 'tgme_widget_message_text js-message_text'}).get_text(
-                separator='\n'),
-            full_msg_tag.find('a', attrs={'class': 'tgme_widget_message_date'}).attrs['href'],
-        ))
+    tree = lxml_html.fromstring(raw)
+
+    message_blocks = tree.xpath(
+        "//div[contains(@class, 'tgme_widget_message_wrap') and contains(@class, 'js-widget_message_wrap')]"
+    )
+
+    for full_msg_tag in message_blocks:
+        text_nodes = full_msg_tag.xpath(
+            ".//div[contains(@class, 'tgme_widget_message_text') and contains(@class, 'js-message_text')]"
+        )
+
+        if not text_nodes:
+            continue
+
+        text_node = text_nodes[0]
+
+        for br in text_node.xpath(".//br"):
+            br.tail = "\n" + br.tail if br.tail else "\n"
+
+        text = text_node.text_content()
+
+        date_nodes = full_msg_tag.xpath(
+            ".//a[contains(@class, 'tgme_widget_message_date')]"
+        )
+
+        if not date_nodes:
+            continue
+
+        href = date_nodes[0].get("href")
+
+        result.append((text, href))
+
     return result
 
 
 def extract_outage_line(outage: str) -> str | None:
     for line in outage.splitlines():
         line_lower = line.lower()
-        if 'свачян' in line_lower or ('малатия' in line_lower and 'а1' in line_lower):
+        if 'эджмиацни' in line_lower or ('малатия' in line_lower and 'а1' in line_lower):
             return line
     return None
 
