@@ -98,7 +98,7 @@ async def parse_outages(raw: str) -> list[tuple[str, str]]:
 def extract_outage_line(outage: str) -> str | None:
     for line in outage.splitlines():
         line_lower = line.lower()
-        if 'эджмиацни' in line_lower or ('малатия' in line_lower and 'а1' in line_lower):
+        if 'свачян' in line_lower or ('малатия' in line_lower and 'а1' in line_lower):
             return line
     return None
 
