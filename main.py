@@ -1,38 +1,33 @@
-import asyncio
 import gc
 import json
 import logging
 import sys
-from os import getenv, path
+from os import path, getenv
 
 import aiofiles
 import aiohttp
-from aiogram import Bot, Dispatcher, html
-from aiogram.client.default import DefaultBotProperties
-from aiogram.enums.parse_mode import ParseMode
-from aiogram.filters.command import CommandStart
-from aiogram.types.message import Message
 from dotenv import load_dotenv
 from lxml import html as lxml_html
+from telegram import Update, Bot
+from telegram.constants import ParseMode
+from telegram.ext import Application, CommandHandler, ContextTypes
 
 OUTAGES_SRC_URL = 'https://t.me/s/ArmeniaBlackouts'
 OUTAGE_CHECK_INTERVAL = 60 * 10  # seconds
 CONF_PATH = 'config.json'
 
-dp = Dispatcher()
-
 notification_recipients_chat_ids: list[int] = []
 latest_parsed_msg: str = ''
 
 
-async def load_config() -> None:
+def load_config() -> None:
     global notification_recipients_chat_ids, latest_parsed_msg
 
     if not path.exists(CONF_PATH):
         return
 
-    async with (aiofiles.open(CONF_PATH, mode='r') as f):
-        conf_raw = await f.read()
+    with open(CONF_PATH, mode='r') as f:
+        conf_raw = f.read()
         conf = json.loads(conf_raw)
         notification_recipients_chat_ids = conf['notification_recipients_chat_ids']
         latest_parsed_msg = conf['latest_parsed_msg']
@@ -114,7 +109,7 @@ async def notify_if_outage_at_svachyan(outage: str, outage_link: str, bot: Bot) 
                                    parse_mode=ParseMode.HTML)
 
 
-async def check_and_notify_about_outages(bot: Bot) -> None:
+async def check_and_notify_about_outages(context: ContextTypes.DEFAULT_TYPE) -> None:
     global latest_parsed_msg
 
     logging.info('checking outages...')
@@ -131,52 +126,33 @@ async def check_and_notify_about_outages(bot: Bot) -> None:
 
     latest_parsed_msg = outages[-1][1]
     for outage, outage_link in outages:
-        await notify_if_outage_at_svachyan(outage, outage_link, bot)
+        await notify_if_outage_at_svachyan(outage, outage_link, context.bot)
 
     await update_config()
+    gc.collect()
 
 
-async def outages_check_routine(bot: Bot) -> None:
-    await check_and_notify_about_outages(bot)
-
-    while True:
-        await asyncio.sleep(OUTAGE_CHECK_INTERVAL)
-        try:
-            await check_and_notify_about_outages(bot)
-        except Exception as e:
-            logging.exception(e)
-        gc.collect()
-
-
-@dp.message(CommandStart())
-async def command_start_handler(message: Message) -> None:
-    """
-    This handler receives messages with `/start` command
-    """
-    # Most event objects have aliases for API methods that can be called in events' context
-    # For example if you want to answer to incoming message you can use `message.answer(...)` alias
-    # and the target chat will be passed to :ref:`aiogram.methods.send_message.SendMessage`
-    # method automatically or call API method directly via
-    # Bot instance: `bot.send_message(chat_id=message.chat.id, ...)`
-    notification_recipients_chat_ids.append(message.chat.id)
+async def command_start_handler(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    if not update.message:
+        return
+    notification_recipients_chat_ids.append(update.message.chat_id)
     await update_config()
-    await message.answer(f"Hello, {html.bold(message.from_user.full_name)}!\n"
-                         f"From now on you'll receive info messages regarding water and power outages at Svachyan street")
+    await update.message.reply_html(
+        f"Hello, <b>{update.message.from_user.full_name}</b>!\n"
+        f"From now on you'll receive info messages regarding water and power outages at Svachyan street")
 
 
-async def main() -> None:
+def main() -> None:
     load_dotenv()
-    await load_config()
+    load_config()
 
-    # Initialize Bot instance with default bot properties which will be passed to all API calls
-    bot = Bot(token=getenv("BOT_TOKEN"), default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-
-    asyncio.create_task(outages_check_routine(bot))
-
-    # And the run events dispatching
-    await dp.start_polling(bot)
+    application = Application.builder().token(getenv("BOT_TOKEN")).build()
+    application.add_handler(CommandHandler("start", command_start_handler))
+    application.job_queue.run_repeating(
+        check_and_notify_about_outages, interval=OUTAGE_CHECK_INTERVAL, first=1)
+    application.run_polling(allowed_updates=Update.ALL_TYPES, close_loop=False)
 
 
 if __name__ == "__main__":
     logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s', level=logging.INFO, stream=sys.stdout)
-    asyncio.run(main())
+    main()

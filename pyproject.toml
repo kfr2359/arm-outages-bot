@@ -6,10 +6,12 @@ build-backend = "setuptools.build_meta"
 name = "arm-outages-bot"
 dynamic = ["version"]
 dependencies = [
-    "aiogram",
     "aiofiles",
+    "aiohttp >= 3.13, < 3.14",
     "lxml",
     "python-dotenv",
+    "python-telegram-bot",
+    "python-telegram-bot[job-queue]"
 ]
 
 [tool.setuptools.packages]
