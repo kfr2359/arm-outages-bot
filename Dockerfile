@@ -1,14 +1,24 @@
-FROM python:3.13-slim
+FROM python:3.13-alpine AS builder
 
-RUN apt update && apt install -y gcc git
+RUN apk add gcc git
 
-ENV DHOMEDIR=/app
+WORKDIR /app/
+
+COPY . .
+
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
+
+RUN pip install uv
+RUN uv sync --locked --no-dev
+
+FROM python:3.13-alpine AS runtime
+
+COPY --from=builder /app /app
+
+ENV PATH="/app/.venv/bin:$PATH"
+
+WORKDIR /app
 
 ARG ENV=production
 
-COPY . $DHOMEDIR
-
-WORKDIR $DHOMEDIR
-RUN pip install .
-
-ENTRYPOINT ["python3", "main.py"]
+ENTRYPOINT ["python3", "-O", "main.py"]

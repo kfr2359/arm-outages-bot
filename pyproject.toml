@@ -7,6 +7,7 @@ name = "arm-outages-bot"
 dynamic = ["version"]
 dependencies = [
     "aiogram",
+    "aiofiles",
     "beautifulsoup4",
     "python-dotenv",
 ]
